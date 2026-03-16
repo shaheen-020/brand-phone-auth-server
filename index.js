@@ -117,6 +117,69 @@ app.delete("/phones/:id", async (req, res) => {
     res.status(500).send({ error: 'Failed to delete phone' });
   }
 });
+// user api
+async function getUserCollection() {
+  await connectClient();
+  return client.db("phoneDB").collection("users");
+}
+app.get("/users", async (req, res) => {
+  try {
+    const userCollection = await getUserCollection();
+    const cursor = userCollection.find();
+    const result = await cursor.toArray(); 
+    res.send(result);
+  }
+  catch (err) {
+    console.error('/users GET error:', err); 
+    res.status(500).send({ error: 'Failed to fetch users' }); 
+  }
+});
+app.get("/users/:id", async (req, res) => {
+  try {
+    const userCollection = await getUserCollection();
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const result = await userCollection.findOne(query);
+    if (!result) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+    res.send(result);
+  }
+  catch (err) {
+    console.error('/users/:id GET error:', err);
+    res.status(500).send({ error: 'Failed to fetch user' });
+  }
+});
+
+app.post("/users", async (req, res) => {
+  try {
+    const userCollection = await getUserCollection();
+    const user = req.body;
+    const result = await userCollection.insertOne(user);
+    res.send(result);
+  }
+  catch (err) {
+    console.error('/users POST error:', err);
+    res.status(500).send({ error: 'Failed to create user' });
+  }
+});
+
+app.patch("/users", async (req, res) => { 
+  try {
+    const userCollection = await getUserCollection();
+    const { email } = req.body; 
+    const filter = { email: email }; 
+    const updateDoc = {
+      $set: req.body
+    };
+    const result = await userCollection.updateOne(filter, updateDoc);
+    res.send(result);
+  } 
+  catch (err) {
+    console.error('/users PATCH error:', err);
+    res.status(500).send({ error: 'Failed to update user' });
+  }
+});
 
 app.get('/', (req, res) => {
   if (process.env.DB_PASS === undefined || process.env.DB_USER === undefined) {
